@@ -90,7 +90,7 @@ While simple and fast, the paper notes the current implementation might converge
     ```
 
 ## Project Structure
-
+```
 .
 ├── .gradle/          # Gradle cache and metadata
 ├── .idea/            # IDE configuration (optional, often in .gitignore)
@@ -110,7 +110,7 @@ While simple and fast, the paper notes the current implementation might converge
 ├── LICENSE           # [Recommended] Add a license file (e.g., MIT, Apache 2.0)
 ├── README.md         # This file
 └── settings.gradle.kts # Gradle settings script
-
+```
 
 ## Results / Evaluation
 
