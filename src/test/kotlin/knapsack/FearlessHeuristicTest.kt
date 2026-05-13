@@ -10,7 +10,7 @@ class FearlessHeuristicTest {
     @Test
     fun `empty input returns empty selection`() {
         assertEquals(emptyList(), selectItemsFearless(emptyList(), capacity = 100))
-        assertEquals(emptyList(), fearlessMetaheuristic(emptyList(), capacity = 100, threshold = 2.0, ::f1, ::f2))
+        assertEquals(emptyList(), fearlessMetaheuristic(emptyList(), capacity = 100, threshold = 2.0, ::valueDensity, ::fitsIn))
         assertEquals(emptyList(), dynamicProgrammingKnapsack(emptyList(), capacity = 100))
     }
 
@@ -18,7 +18,7 @@ class FearlessHeuristicTest {
     fun `zero capacity returns empty selection`() {
         val items = listOf(Item(value = 60, weight = 10), Item(value = 100, weight = 20))
         assertEquals(emptyList(), selectItemsFearless(items, capacity = 0))
-        assertEquals(emptyList(), fearlessMetaheuristic(items, capacity = 0, threshold = 2.0, ::f1, ::f2))
+        assertEquals(emptyList(), fearlessMetaheuristic(items, capacity = 0, threshold = 2.0, ::valueDensity, ::fitsIn))
         assertEquals(emptyList(), dynamicProgrammingKnapsack(items, capacity = 0))
     }
 
@@ -30,7 +30,7 @@ class FearlessHeuristicTest {
 
         for (selection in listOf(
             selectItemsFearless(items, capacity),
-            fearlessMetaheuristic(items, capacity, threshold = 2.6, ::f1, ::f2),
+            fearlessMetaheuristic(items, capacity, threshold = 2.6, ::valueDensity, ::fitsIn),
             dynamicProgrammingKnapsack(items, capacity),
         )) {
             assertTrue(selection.sumOf { it.weight } <= capacity)
@@ -60,7 +60,7 @@ class FearlessHeuristicTest {
         val capacity = 80
 
         val dpValue = dynamicProgrammingKnapsack(items, capacity).sumOf { it.value }
-        val mhValue = fearlessMetaheuristic(items, capacity, threshold = 2.6, ::f1, ::f2).sumOf { it.value }
+        val mhValue = fearlessMetaheuristic(items, capacity, threshold = 2.6, ::valueDensity, ::fitsIn).sumOf { it.value }
 
         assertTrue(
             mhValue >= 0.9 * dpValue,

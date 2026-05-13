@@ -1,34 +1,31 @@
 package knapsack
 
-fun f1(item: Item): Double = item.value.toDouble() / item.weight
-fun f2(item: Item, remainingCapacity: Int): Boolean = item.weight <= remainingCapacity
+fun valueDensity(item: Item): Double = item.value.toDouble() / item.weight
+
+fun fitsIn(item: Item, remainingCapacity: Int): Boolean = item.weight <= remainingCapacity
 
 fun fearlessMetaheuristic(
     items: List<Item>,
     capacity: Int,
     threshold: Double,
-    f1: (Item) -> Double,
-    f2: (Item, Int) -> Boolean
+    valueDensity: (Item) -> Double,
+    fitsIn: (Item, Int) -> Boolean,
 ): List<Item> {
-    val highVWItems = items.filter { f1(it) >= threshold }
-    val lowVWItems = items.filter { f1(it) < threshold }
-
-    val fearlessItems = highVWItems.sortedByDescending { f1(it) }
-    val cautiousItems = lowVWItems.sortedByDescending { f1(it) }
+    val fearlessItems = items.filter { valueDensity(it) >= threshold }.sortedByDescending(valueDensity)
+    val cautiousItems = items.filter { valueDensity(it) < threshold }.sortedByDescending(valueDensity)
 
     val selectedItems = mutableListOf<Item>()
-
     var remainingCapacity = capacity
+
     for (item in fearlessItems) {
-        if (f2(item, remainingCapacity)) {
-            selectedItems.add(item) // Selecciona elementos dispuestos a "arriesgarse a morir".
+        if (fitsIn(item, remainingCapacity)) {
+            selectedItems.add(item)
             remainingCapacity -= item.weight
         }
     }
-
     for (item in cautiousItems) {
-        if (f2(item, remainingCapacity)) {
-            selectedItems.add(item) // Selecciona elementos "temerosos de morir" si aún hay espacio.
+        if (fitsIn(item, remainingCapacity)) {
+            selectedItems.add(item)
             remainingCapacity -= item.weight
         }
     }
