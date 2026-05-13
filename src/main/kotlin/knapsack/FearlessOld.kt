@@ -1,3 +1,5 @@
+package knapsack
+
 // Greedy-by-density variant: sort all items by value/weight descending
 // and fill the knapsack until the next item no longer fits. Pre-dates
 // the threshold-split "fearless / cautious" variant in NewFearless.kt.
