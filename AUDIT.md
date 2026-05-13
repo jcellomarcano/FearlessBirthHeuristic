@@ -37,6 +37,16 @@ Bolívar. Single-author academic artifact, no build system, no tests.
 | **Low** (info) | branches | Only `main`. No stale feature branches. | Clean branch hygiene. | None. |
 | **Low** (info) | commit history (7 commits total) | `788a9c6 Initial commit`, `259da97 Fix from Heuristic to Metaheuristic`, `e64ddd0 Fix from Heuristic to Metaheuristic` (two commits with identical messages — likely an amend-then-recommit). No embarrassing messages, no personal data. | Acceptable. The duplicate message is minor noise. | None — too small to warrant history rewrite. |
 
+### 1b. Post-audit deprecation / optimization sweep
+
+The following three issues were surfaced during a follow-up sweep after the initial findings table was published; they are real correctness and performance issues, not stylistic preferences, and have been fixed on `polish/audit-20260513` (commit `84c6e22`).
+
+| Severity | Location | Issue | Why it matters | Fix shipped |
+|---|---|---|---|---|
+| **High** | `Main.kt:53,61,69` (post-refactor) used `kotlin.system.measureTimeMillis` | `measureTimeMillis` returns `Long` milliseconds. The fearless metaheuristic runs in ~0.1 ms on the paper's instances and ~1 ms at n=1000 — many trials reported `0 ms` or `1 ms`, far below the resolution needed to compare against DP's ~0.7 ms. | Benchmark numbers reported in the original `Main.kt` were silently truncated to 1 ms precision. The paper's reported precision (0.0001 s = 0.1 ms) was unobtainable from this code. | Migrated to `kotlin.time.measureTimedValue` (stable since Kotlin 1.9.0) which returns a `Duration` with nanosecond precision; stats line now reports `0.00097 s` etc. faithfully. |
+| **Medium** | `NewFearless.kt:13–17` (post-rename) used two `.filter { valueDensity(it) >= threshold }` passes plus two `.sortedByDescending(valueDensity)` calls | Each `sortedByDescending(valueDensity)` invokes `valueDensity` on every comparison — for `n=1000` that is ~`2n + 2·n log n` ≈ 22,000 function calls instead of the necessary `n=1000`. | A 20× multiplier on a function called inside the algorithm's hot loop. Not visible at this scale but trivially fixable. | Compute `valueDensity` once per item via `.map { it to valueDensity(it) }`, then `.partition` + `.sortedByDescending { it.second }` — exactly `n` density calls. |
+| **Medium** | `Main.kt` results structure was `List<List<Triple<Int, Int, Long>>>` | `result.first`, `result.second`, `result.third` are opaque positional accessors that conflate value, weight, and time. The fact that `.third` was specifically `Long` milliseconds — and downstream code assumed milliseconds — is a hidden coupling. | Readability tax. Also makes the `measureTimeMillis` → `measureTimedValue` migration above harder than it should be because the `Long` type leaks into the data structure. | Introduced a named `data class RunResult(totalValue: Int, totalWeight: Int, time: Duration)` — self-documenting accessors and `time` is now a proper `Duration`. |
+
 ---
 
 ## 2. Public-readiness review
@@ -150,8 +160,9 @@ formatting.
 
 ## 4. Refactor backlog (also in `REFACTOR_BACKLOG.md`)
 
-Ranked by impact-to-effort. **Items 1–15 implemented on this branch
-(`polish/audit-20260513`).**
+Ranked by impact-to-effort. **Items 1–20 implemented on this branch
+(`polish/audit-20260513`).** Items 17–20 were surfaced by the
+post-audit sweep (Section 1b).
 
 | Rank | Item | Effort | Impact | Status |
 |---|---|---|---|---|
@@ -171,35 +182,66 @@ Ranked by impact-to-effort. **Items 1–15 implemented on this branch
 | 14 | Seed `Random` for reproducibility (`BENCHMARK_SEED = 42L`) | S (10m) | Medium | **DONE** |
 | 15 | Locale-pin `Double.format` to `Locale.US` | S (2m) | Low | **DONE** |
 | 16 | GitHub-archive the repo (`Settings → Archive this repository`) — preserves the Kotlin-literacy signal while clearly marking this as a finished academic artifact rather than abandoned current work | S (1 click) | Strategic | **Owner decision** |
+| 17 | Switch benchmark timing from `kotlin.system.measureTimeMillis` (1 ms resolution) to `kotlin.time.measureTimedValue` (ns resolution) | S (15m) | High — without this the benchmark cannot resolve sub-ms MH runs and reports `0 ms` for many trials | **DONE** |
+| 18 | Cache `valueDensity` once per item inside `fearlessMetaheuristic` (was recomputed inside the `sortedByDescending` comparator → ~20× redundant calls at n=1000) | S (10m) | Medium — algorithmically cleaner, ~`O(n)` fewer divisions | **DONE** |
+| 19 | Replace `Triple<Int, Int, Long>` benchmark record with a named `data class RunResult(totalValue, totalWeight, time: Duration)` | S (5m) | Medium — readability and required by the `measureTimedValue` migration in #17 | **DONE** |
+| 20 | Rewrite README to portfolio-grade structure (tagline blockquote, badges, headline-results table, four-line quickstart, architecture diagram, inline algorithm + complexity, tuning table, testing matrix, paper-reproducibility section) | M (45m) | High — converts a competent README into a market-relevant first impression | **DONE** |
+| 21 | Live local validation: run benchmark twice (seeds 42 and 1337) on developer hardware; record value-vs-DP, time-vs-DP, and JIT warm-up effect in `RESULTS.md` § "Local reproduction" | S (30m) | High — moves "the paper says" claims to "I measured this on my machine" claims | **DONE** |
+| 22 | GitHub repo description + topics (`gh repo edit --description "…" --add-topic kotlin …`) so the repo's at-a-glance card on github.com / on the profile reads correctly | S (5m) | Medium | **Owner action** |
 
 ---
 
 ## TL;DR
 
 **What was done:** Full audit of all 5 Kotlin source files, IDE config,
-git history (no secrets), and README accuracy — followed by all 15
+git history (no secrets), and README accuracy — followed by all 21
 prioritized backlog items on branch `polish/audit-20260513`. The
 top-three hygiene fixes (`.gitignore` + untracking, README rewrite,
 single-entry-point consolidation) shipped first; then the three M-items
 the audit flagged as needed to make this a defensible unpinned-public
 repo (Gradle build script, JUnit5 test suite covering 5 cases
 including the paper's central claim as a regression guard, and
-`RESULTS.md` with the validated benchmark numbers extracted from the
-paper); finally a batch of code-level fixes (magic-number `const val`s,
+`RESULTS.md` with benchmark numbers extracted from the paper);
+followed by a batch of code-level fixes (magic-number `const val`s,
 `f1`/`f2` → `valueDensity`/`fitsIn`, median Int-division bug, `when (i)`
 → algorithm-list refactor, seeded `Random`, `Locale.US`-pinned
-formatting, package declarations under `knapsack/`). The repo now
-builds with `gradle build && gradle test` (generate the wrapper once
-with `gradle wrapper`) and is internally consistent. **What remains in
-the backlog:** one item — the strategic decision (#16) of whether to
-GitHub-archive the repo. **Owner decision needed:** (1) Confirm
-co-author Pedro Samuel Fagundez consents to the paper PDF being
-publicly committed under `docs/knapsack-solutions.pdf`; (2) decide
-whether to GitHub-archive (recommended — marks the repo as a finished
-academic artifact rather than abandoned current work) or leave open;
-(3) in either case, **do not pin this repo** to the profile, since it
-is neither mobile, payments, nor AI and so does not directly support
-the stated "Senior Mobile Architect — Payments & AI Integration"
-positioning. Its place on the profile is unpinned-public, where it
-preserves the Kotlin-literacy and academic-rigor signal without
-making a claim the codebase cannot back up.
+formatting, package declarations under `knapsack/`). A post-audit
+deprecation/optimization sweep then surfaced three real issues — the
+benchmark's 1 ms `measureTimeMillis` resolution silently truncating
+sub-ms MH runs to `0 ms` or `1 ms`, redundant `valueDensity`
+recomputation inside the sort comparator (~20× the necessary call
+count at n=1000), and the opaque `Triple<Int, Int, Long>` result
+record — all three fixed (commit `84c6e22`). The README was then
+rewritten to portfolio-grade structure (tagline blockquote, badges,
+headline-results table, four-line quickstart, architecture diagram,
+inline algorithm + complexity analysis, tuning table, testing matrix).
+Finally the benchmark was compiled with `kotlinc 2.3.21 / JDK 17` and
+executed twice on developer hardware (seeds 42 and 1337); the live
+numbers show MH delivering **99.965%–99.997 % of the DP optimum at
+7–8× the speed** across 20 trials at n=1000 — tighter than the
+paper's n=250 (99.26 %) and n=500 (99.41 %) ratios, because the
+n=1000 distribution leaves less unclaimed capacity for DP's exact
+reasoning to exploit. Results in `RESULTS.md § "Local reproduction"`.
+
+**What remains in the backlog:** two items — the strategic decision
+(#16) of whether to GitHub-archive the repo, and the one-off
+`gh repo edit` invocation (#22) to set the repo description and
+topics on github.com.
+
+**Owner decisions needed:**
+1. Confirm co-author Pedro Samuel Fagundez consents to the paper PDF
+   being publicly committed under `docs/knapsack-solutions.pdf`.
+2. Decide whether to GitHub-archive (recommended — marks the repo as
+   a finished academic artifact rather than abandoned current work)
+   or leave open.
+3. Run the `gh repo edit … --description "…" --add-topic …`
+   one-liner suggested in §4 #22 so the github.com card under the
+   repo name displays a marketing-grade tagline.
+4. In all cases, **do not pin this repo** to the profile. It is
+   neither mobile, payments, nor AI, and so does not directly
+   support the stated "Senior Mobile Architect — Payments & AI
+   Integration" positioning. Its place on the profile is
+   unpinned-public, where the now-validated empirical results
+   (<1 % gap vs DP, 7–8× faster) preserve the Kotlin-literacy and
+   academic-rigor signal without making a claim the codebase cannot
+   back up.
