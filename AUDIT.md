@@ -150,50 +150,56 @@ formatting.
 
 ## 4. Refactor backlog (also in `REFACTOR_BACKLOG.md`)
 
-Ranked by impact-to-effort. The top three were implemented in this PR.
+Ranked by impact-to-effort. **Items 1–15 implemented on this branch
+(`polish/audit-20260513`).**
 
 | Rank | Item | Effort | Impact | Status |
 |---|---|---|---|---|
-| 1 | Add `.gitignore`, stop tracking `out/`, `.idea/`, `*.iml` | S (10m) | High — fixes the worst hygiene signal | **DONE** (commit 1) |
-| 2 | Rewrite README to match reality (no Gradle, actual run path, move PDF to `docs/`) | S (30m) | Critical — current README actively misleads | **DONE** (commit 2) |
-| 3 | Remove duplicate `main()` from `FearlessOld.kt` and `NewFearless.kt` | S (10m) | High — single entry point, no ambiguity | **DONE** (commit 3) |
-| 4 | Add proper Gradle wrapper (`gradle init --type kotlin-application`) | M (45m) | High — makes README's `./gradlew run` true; enables tests | Backlog |
-| 5 | Add one JUnit5 test: fearless ≥ 0.9 × DP optimum on `n ≤ 20` fixed input | S (30m, requires #4) | High — turns claim into evidence | Backlog |
-| 6 | Add `RESULTS.md` with paper benchmark numbers + one chart | M (2–4h) | High — reframes repo as empirical study | Backlog |
-| 7 | Replace magic `threshold = 2.6` / `1.5` with named `const val` + justification | S (5m) | Medium | Backlog |
-| 8 | Rename `f1` → `valueDensity`, `f2` → `fitsIn` | S (5m) | Medium | Backlog |
-| 9 | Replace deprecated `sumBy` with `sumOf` (`FearlessOld.kt:36–37`, `NewFearless.kt:53–54`) | S (2m) | Medium | Backlog |
-| 10 | Fix integer-division median bug (`Main.kt:94`) — cast to `Double` | S (2m) | Medium | Backlog |
-| 11 | Replace `for (i in 1..3) { when (i) … }` with `listOf(::fearlessOld, ::fearlessMeta, ::dp)` loop | S (15m) | Medium | Backlog |
-| 12 | Delete or wire `generateNewItems` flag (currently half-dead) | S (5m) | Medium | Backlog |
-| 13 | Add `package` declarations; move sources under `src/main/kotlin/knapsack/` | S (10m, requires #4) | Medium | Backlog |
-| 14 | Seed `Random` in benchmark for reproducibility | S (10m) | Medium | Backlog |
-| 15 | Locale-pin `Double.format` (`Main.kt:103`) to `Locale.US` | S (2m) | Low | Backlog |
-| 16 | GitHub-archive the repo after items 4–6 ship (or instead of them, if owner decides) | S (1 click) | Strategic | Owner decision |
+| 1 | Add `.gitignore`, stop tracking `out/`, `.idea/`, `*.iml` | S (10m) | High — fixes the worst hygiene signal | **DONE** |
+| 2 | Rewrite README to match reality (Gradle path, paper moved to `docs/`) | S (30m) | Critical — old README actively misled | **DONE** |
+| 3 | Remove duplicate `main()` from `FearlessOld.kt` and `NewFearless.kt` | S (10m) | High — single entry point, no ambiguity | **DONE** |
+| 4 | Add Gradle build (`build.gradle.kts` + `settings.gradle.kts`, Kotlin 1.9 / JVM 17 toolchain, JUnit5 platform, `application` plugin) | M (45m) | High — enables `./gradlew run` and `./gradlew test` | **DONE** — wrapper JAR generated locally with `gradle wrapper` |
+| 5 | Add JUnit5 correctness tests (empty input, zero capacity, capacity invariant, DP textbook optimum, fearless ≥ 90% of DP) | S (30m) | High — turns the paper's claim into a regression guard | **DONE** |
+| 6 | Add `RESULTS.md` with paper benchmark numbers + headline ratios validating the central claim | M (2–4h) | High — reframes repo as empirical study, not just code | **DONE** |
+| 7 | Replace magic `threshold` with named `const val FEARLESS_THRESHOLD` + comment | S (5m) | Medium | **DONE** |
+| 8 | Rename `f1` → `valueDensity`, `f2` → `fitsIn` (top-level and parameter names) | S (5m) | Medium | **DONE** |
+| 9 | Replace deprecated `sumBy` with `sumOf` (the only `sumBy` calls were in the demo `main()` blocks removed in commit 3) | S (2m) | Medium | **DONE** |
+| 10 | Fix integer-division median bug — extracted to `List<Int>.median(): Double` | S (2m) | Medium | **DONE** |
+| 11 | Replace `for (i in 1..3) { when (i) … }` cascade with a typed list of `Algorithm(label, solve)` records | S (15m) | Medium | **DONE** |
+| 12 | Resolve the half-dead `generateNewItems` flag — deleted | S (5m) | Medium | **DONE** |
+| 13 | Add `package knapsack` declarations; move sources under `src/main/kotlin/knapsack/` | S (10m) | Medium | **DONE** |
+| 14 | Seed `Random` for reproducibility (`BENCHMARK_SEED = 42L`) | S (10m) | Medium | **DONE** |
+| 15 | Locale-pin `Double.format` to `Locale.US` | S (2m) | Low | **DONE** |
+| 16 | GitHub-archive the repo (`Settings → Archive this repository`) — preserves the Kotlin-literacy signal while clearly marking this as a finished academic artifact rather than abandoned current work | S (1 click) | Strategic | **Owner decision** |
 
 ---
 
 ## TL;DR
 
 **What was done:** Full audit of all 5 Kotlin source files, IDE config,
-git history (no secrets), and README accuracy. Three hygiene commits
-landed on `polish/audit-20260513`: added a proper `.gitignore` and
-untracked `out/` + `.idea/` + `.iml`, rewrote the README to describe
-the project as it actually exists (no Gradle, IntelliJ-only) with the
-paper PDF moved to `docs/`, and removed the duplicate `main()` blocks
-in `FearlessOld.kt` and `NewFearless.kt` so `Main.kt` is the sole
-entry point. **What remains:** 13 backlog items — most are 5–30 min
-fixes (deprecated `sumBy`, integer-division median bug, `f1`/`f2`
-renames, magic-number `const val`s), plus three larger items (real
-Gradle wrapper, one JUnit5 test, `RESULTS.md` with paper numbers)
-that would together cost ~3 hours and turn the repo from
-"finished coursework artifact" into "small but real empirical study".
-**Owner decision needed:** (1) Confirm co-author Pedro Samuel
-Fagundez consents to the paper PDF being publicly committed;
-(2) decide between **(a)** ship the three backlog M-items (Gradle +
-test + `RESULTS.md`) to make this a defensible unpinned-public repo,
-or **(b)** GitHub-archive it now and move on — both are honest
-positions, but **do not pin it** in either case, since this repo is
-not mobile, not payments, and not AI, and so does not directly
-support the stated "Senior Mobile Architect — Payments & AI
-Integration" positioning.
+git history (no secrets), and README accuracy — followed by all 15
+prioritized backlog items on branch `polish/audit-20260513`. The
+top-three hygiene fixes (`.gitignore` + untracking, README rewrite,
+single-entry-point consolidation) shipped first; then the three M-items
+the audit flagged as needed to make this a defensible unpinned-public
+repo (Gradle build script, JUnit5 test suite covering 5 cases
+including the paper's central claim as a regression guard, and
+`RESULTS.md` with the validated benchmark numbers extracted from the
+paper); finally a batch of code-level fixes (magic-number `const val`s,
+`f1`/`f2` → `valueDensity`/`fitsIn`, median Int-division bug, `when (i)`
+→ algorithm-list refactor, seeded `Random`, `Locale.US`-pinned
+formatting, package declarations under `knapsack/`). The repo now
+builds with `gradle build && gradle test` (generate the wrapper once
+with `gradle wrapper`) and is internally consistent. **What remains in
+the backlog:** one item — the strategic decision (#16) of whether to
+GitHub-archive the repo. **Owner decision needed:** (1) Confirm
+co-author Pedro Samuel Fagundez consents to the paper PDF being
+publicly committed under `docs/knapsack-solutions.pdf`; (2) decide
+whether to GitHub-archive (recommended — marks the repo as a finished
+academic artifact rather than abandoned current work) or leave open;
+(3) in either case, **do not pin this repo** to the profile, since it
+is neither mobile, payments, nor AI and so does not directly support
+the stated "Senior Mobile Architect — Payments & AI Integration"
+positioning. Its place on the profile is unpinned-public, where it
+preserves the Kotlin-literacy and academic-rigor signal without
+making a claim the codebase cannot back up.
