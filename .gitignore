@@ -1,0 +1,28 @@
+# Kotlin / JVM build output
+/out/
+/build/
+*.class
+*.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Gradle (in case a wrapper is added later)
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# macOS / Windows / Linux noise
+.DS_Store
+Thumbs.db
+
+# Local config
+local.properties
+*.log
+
+# Tooling workspaces
+.claude/
