@@ -33,23 +33,3 @@ fun fearlessMetaheuristic(
 
     return selectedItems
 }
-
-fun main() {
-    val numItems = 10
-    val maxValue = 100
-    val maxWeight = 50
-    val capacity = 150
-    val items = generateItems(numItems, maxValue, maxWeight)
-
-    println("Items generados:")
-    items.forEachIndexed { index, item ->
-        println("Ítem ${index + 1}: Valor: ${item.value}, Peso: ${item.weight}")
-    }
-
-    val threshold = 1.5
-    val solution = fearlessMetaheuristic(items, capacity, threshold, ::f1, ::f2)
-
-    println("Items seleccionados: $solution")
-    println("Valor total: ${solution.sumBy { it.value }}")
-    println("Peso total: ${solution.sumBy { it.weight }}")
-}
