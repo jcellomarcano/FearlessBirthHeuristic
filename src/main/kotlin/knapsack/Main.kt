@@ -1,3 +1,5 @@
+package knapsack
+
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis

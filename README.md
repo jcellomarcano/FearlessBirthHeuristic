@@ -35,39 +35,47 @@ metaheuristic lands within **<1% of the DP optimum** while running
 ## What's in this repo
 
 ```
-src/main/kotlin/
+src/main/kotlin/knapsack/
 ├── Item.kt              # data class Item(value, weight)
 ├── FearlessOld.kt       # original greedy-by-density variant
 ├── NewFearless.kt       # threshold-split "fearless / cautious" variant
 ├── DPKnapSack.kt        # exact 0/1 knapsack via dynamic programming (reference)
 └── Main.kt              # benchmark harness — runs all three on random inputs
+src/test/kotlin/knapsack/
+└── FearlessHeuristicTest.kt   # JUnit5 correctness check vs DP optimum
 docs/
-└── knapsack-solutions.pdf   # accompanying paper
+└── knapsack-solutions.pdf     # accompanying paper
+build.gradle.kts             # Gradle build (Kotlin DSL)
+settings.gradle.kts
 ```
 
 ## How to run it
 
-> **Note:** This repository is a plain IntelliJ Kotlin module — it does
-> not include a Gradle wrapper, so there is no `./gradlew run`. The
-> intended workflow is to open it in IntelliJ IDEA. If you prefer a
-> command-line build, see *Running from the command line* below.
+### With Gradle (requires JDK 17+)
 
-### From IntelliJ IDEA (recommended)
-
-1. **File → Open** → select this repository's root directory.
-2. When prompted, configure a JDK (any modern OpenJDK — the original
-   author used JDK 19; anything ≥ JDK 8 will work since the bytecode
-   target is 1.8).
-3. Open `src/main/kotlin/Main.kt` and click the green ▶ gutter icon
-   next to `fun main()`.
-4. The benchmark prints a pipe-delimited table of value / weight /
-   runtime per algorithm per run, plus aggregate statistics.
-
-### Running from the command line
+The repo ships `build.gradle.kts` + `settings.gradle.kts` but does **not**
+commit the Gradle wrapper JAR (binary). Generate it once locally with a
+system Gradle install:
 
 ```bash
-# Requires kotlinc on PATH (brew install kotlin, or download from kotlinlang.org)
-kotlinc src/main/kotlin/*.kt -include-runtime -d FearlessBirth.jar
+gradle wrapper
+./gradlew run
+./gradlew test
+```
+
+### From IntelliJ IDEA
+
+1. **File → Open** → select this repository's root directory.
+2. IntelliJ will detect `build.gradle.kts` and offer to import as a
+   Gradle project. Accept.
+3. Open `src/main/kotlin/knapsack/Main.kt` and click the green ▶ gutter
+   icon next to `fun main()`.
+
+### Without Gradle (kotlinc only)
+
+```bash
+# Requires kotlinc on PATH (brew install kotlin)
+kotlinc src/main/kotlin/knapsack/*.kt -include-runtime -d FearlessBirth.jar
 java -jar FearlessBirth.jar
 ```
 
@@ -103,15 +111,8 @@ reproducibility task.
 
 ## Limitations and known issues
 
-This is coursework, not production code, and it carries some rough
-edges that are catalogued in [AUDIT.md](AUDIT.md):
-
-- No automated tests.
-- No build system (`./gradlew` does not exist despite the older
-  README claiming it did).
-- A handful of deprecated Kotlin APIs (`sumBy`), magic numbers, and a
-  median calculation using integer division.
-
+This is coursework, not production code. Remaining rough edges are
+catalogued in [AUDIT.md](AUDIT.md) and [REFACTOR_BACKLOG.md](REFACTOR_BACKLOG.md).
 If you intend to use this as a starting point for something serious,
 read `AUDIT.md` first.
 

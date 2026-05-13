@@ -1,3 +1,5 @@
+package knapsack
+
 fun dynamicProgrammingKnapsack(items: List<Item>, capacity: Int): List<Item> {
     val n = items.size
     val dp = Array(n + 1) { IntArray(capacity + 1) }

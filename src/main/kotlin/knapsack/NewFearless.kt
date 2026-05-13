@@ -1,3 +1,5 @@
+package knapsack
+
 fun f1(item: Item): Double = item.value.toDouble() / item.weight
 fun f2(item: Item, remainingCapacity: Int): Boolean = item.weight <= remainingCapacity
 
