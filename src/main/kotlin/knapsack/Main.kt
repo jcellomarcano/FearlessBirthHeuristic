@@ -3,7 +3,9 @@ package knapsack
 import java.util.Locale
 import kotlin.math.sqrt
 import kotlin.random.Random
-import kotlin.system.measureTimeMillis
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.measureTimedValue
 
 // Threshold tuned for the paper's n=250 / n=500 instances. Items with
 // a value/weight ratio at or above this cutoff are placed in the
@@ -15,10 +17,10 @@ const val FEARLESS_THRESHOLD = 2.6
 // Defaults for the benchmark harness — match the paper's n=500 / large
 // problem-size regime. Override in main() or via your own driver.
 const val NUM_ITEMS = 1000
-const val MAX_VALUE = 59
 const val MIN_VALUE = 10
-const val MAX_WEIGHT = 19
+const val MAX_VALUE = 59
 const val MIN_WEIGHT = 2
+const val MAX_WEIGHT = 19
 const val CAPACITY = 500
 const val NUM_RUNS = 10
 const val BENCHMARK_SEED = 42L
@@ -33,6 +35,8 @@ private data class Algorithm(
     val solve: (List<Item>, Int) -> List<Item>,
 )
 
+data class RunResult(val totalValue: Int, val totalWeight: Int, val time: Duration)
+
 fun main() {
     val rng = Random(BENCHMARK_SEED)
     val itemSets = List(NUM_RUNS) { generateItems(NUM_ITEMS, MAX_VALUE, MAX_WEIGHT, rng) }
@@ -45,29 +49,35 @@ fun main() {
         Algorithm("Programación dinámica") { items, cap -> dynamicProgrammingKnapsack(items, cap) },
     )
 
-    val results: List<List<Triple<Int, Int, Long>>> = algorithms.map { algorithm ->
+    val results: List<List<RunResult>> = algorithms.map { algorithm ->
         itemSets.map { items ->
-            var selection: List<Item> = emptyList()
-            val timeMillis = measureTimeMillis { selection = algorithm.solve(items, CAPACITY) }
-            Triple(selection.sumOf { it.value }, selection.sumOf { it.weight }, timeMillis)
+            val (selection, duration) = measureTimedValue { algorithm.solve(items, CAPACITY) }
+            RunResult(selection.sumOf { it.value }, selection.sumOf { it.weight }, duration)
         }
     }
 
-    println(listOf("Algoritmo", "Elementos", "Tiempo (ms)", "Valor", "Peso").joinToString(" | "))
+    println(listOf("Algoritmo", "Elementos", "Tiempo (s)", "Valor", "Peso").joinToString(" | "))
 
     for ((index, algorithm) in algorithms.withIndex()) {
-        for ((run, result) in results[index].withIndex()) {
-            val (totalValue, totalWeight, executionTime) = result
-            val executionTimeInSeconds = executionTime / 1000.0
-            println("${algorithm.label} | Run ${run + 1} | ${executionTimeInSeconds.format(5)} s | $totalValue | $totalWeight")
+        val runs = results[index]
+        for ((runIndex, result) in runs.withIndex()) {
+            val seconds = result.time.toDouble(DurationUnit.SECONDS)
+            println("${algorithm.label} | Run ${runIndex + 1} | ${seconds.format(5)} s | ${result.totalValue} | ${result.totalWeight}")
         }
-        val avgTime = results[index].map { it.third }.average() / 1000.0
-        val maxVal = results[index].maxOf { it.first }
-        val medianVal = results[index].map { it.first }.median()
-        val meanVal = results[index].map { it.first }.average()
-        val stdDevVal = sqrt(results[index].map { (it.first - meanVal) * (it.first - meanVal) }.average())
 
-        println("Promedio de tiempo: ${avgTime.format(5)} s | Valor máximo: $maxVal | Mediana: ${medianVal.format(1)} | Desviación estándar: ${stdDevVal.format(4)}")
+        val values = runs.map { it.totalValue }
+        val avgTimeSeconds = runs.map { it.time.toDouble(DurationUnit.SECONDS) }.average()
+        val maxValue = values.max()
+        val medianValue = values.median()
+        val meanValue = values.average()
+        val stdDevValue = sqrt(values.map { (it - meanValue) * (it - meanValue) }.average())
+
+        println(
+            "Promedio de tiempo: ${avgTimeSeconds.format(5)} s | " +
+                "Valor máximo: $maxValue | " +
+                "Mediana: ${medianValue.format(1)} | " +
+                "Desviación estándar: ${stdDevValue.format(4)}",
+        )
     }
 }
 

@@ -11,24 +11,26 @@ fun fearlessMetaheuristic(
     valueDensity: (Item) -> Double,
     fitsIn: (Item, Int) -> Boolean,
 ): List<Item> {
-    val fearlessItems = items.filter { valueDensity(it) >= threshold }.sortedByDescending(valueDensity)
-    val cautiousItems = items.filter { valueDensity(it) < threshold }.sortedByDescending(valueDensity)
+    // Compute the value/weight ratio once per item; previously sortedByDescending
+    // and the two .filter passes recomputed it ~2(n + n log n) times.
+    val scored = items.map { it to valueDensity(it) }
+    val (fearless, cautious) = scored.partition { (_, density) -> density >= threshold }
 
-    val selectedItems = mutableListOf<Item>()
-    var remainingCapacity = capacity
+    val fearlessSorted = fearless.sortedByDescending { it.second }.map { it.first }
+    val cautiousSorted = cautious.sortedByDescending { it.second }.map { it.first }
 
-    for (item in fearlessItems) {
-        if (fitsIn(item, remainingCapacity)) {
-            selectedItems.add(item)
-            remainingCapacity -= item.weight
+    val selected = mutableListOf<Item>()
+    var remaining = capacity
+
+    fun tryAdd(item: Item) {
+        if (fitsIn(item, remaining)) {
+            selected.add(item)
+            remaining -= item.weight
         }
     }
-    for (item in cautiousItems) {
-        if (fitsIn(item, remainingCapacity)) {
-            selectedItems.add(item)
-            remainingCapacity -= item.weight
-        }
-    }
 
-    return selectedItems
+    fearlessSorted.forEach(::tryAdd)
+    cautiousSorted.forEach(::tryAdd)
+
+    return selected
 }
