@@ -27,7 +27,10 @@ optimum while running orders of magnitude faster.
 
 See the paper for the threshold-selection discussion, the comparison
 against DP / GA / ACO / Tabu Search / Memetic Algorithm, and the
-result tables.
+result tables. The headline numbers are also reproduced in
+[`RESULTS.md`](RESULTS.md): on n=250 / n=500 random instances, the
+metaheuristic lands within **<1% of the DP optimum** while running
+**5–7× faster than DP itself**.
 
 ## What's in this repo
 
